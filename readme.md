@@ -1,52 +1,16 @@
-# One-to-One Chat Simulation
+# One-to-One and Group Chat Simulation
 
 This project is a simple simulation of a WhatsApp-like one-to-one chat system using Python, `asyncio`, and `websockets`. It demonstrates core concepts of real-time messaging, user presence, and asynchronous server-client communication.
 
 ---
-
-### 1. Chat Server (`server.py`)
-
-- **Role:** Central hub for all chat communication.
-- **Responsibilities:**
-  - Registers users and manages their WebSocket connections.
-  - Routes messages between users.
-  - Handles user presence (online/offline) via the Presence Server.
-  - Broadcasts presence updates to all connected users.
-  - Responds to queries like "who is online".
-
-### 2. Presence Server (`presenceserver.py`)
-
-- **Role:** Tracks which users are currently online.
-- **Responsibilities:**
-  - Maintains a set of online users.
-  - Updates presence status on user connect/disconnect.
-  - Provides the list of online users to the Chat Server.
-
-### 3. Chat Client (`client.py`)
-
-- **Role:** User interface for sending and receiving messages.
-- **Responsibilities:**
-
-  - Connects to the Chat Server via WebSocket.
-  - Allows the user to send messages to other users.
-  - Receives and displays messages, acknowledgments, and presence updates.
-  - Can query the server for the list of online users.
-
-  ***
-
-## Architecture Overview
-
-The system consists of three main components:
-
-1. **Chat Server (`server.py`)**
-2. **Presence Server (`presenceserver.py`)**
-3. **Chat Client (`client.py`)**
 
 ## Message Delivery and Acknowledgment Flow
 
 The following diagram illustrates how a message is sent from Alice to Bob through the server, and how acknowledgments (ACKs) or read receipts are handled in this chat simulation:
 
 Alice Server Bob │ │ │ │ ── Send Msg ──> │ │ │ │ ──> Deliver ─> │ │ │ │ │ <── ACK / Read <─┘ │
+
+This flow is implemented in the simulation using message types and acknowledgment packets exchanged between clients and
 
 ### Explanation
 
@@ -81,4 +45,39 @@ Alice Server Bob │ │ │ │ ── Send Msg ──> │ │ │ │ ──>
 
 ---
 
-This flow is implemented in the simulation using message types and acknowledgment packets exchanged between clients and
+### Group Chat
+
+1. **Group Creation**
+
+   - A user can create a group by specifying a group name and a list of members.
+   - The server maintains a mapping of group names to their member lists.
+
+2. **Sending a Group Message**
+
+   - When a user sends a message to a group, the server looks up the group members.
+   - The server forwards the message to all online members of the group except the sender.
+   - Optionally, the server can store messages for offline users to deliver when they come online.
+
+3. **Receiving Group Messages**
+
+   - Each group member receives the message as if it was sent directly to them, but with the group context.
+
+4. **Acknowledgments**
+   - Clients can send acknowledgments for group messages, and the server can forward these to the sender.
+
+---
+
+## Presence Server
+
+The **Presence Server** is a dedicated component responsible for tracking which users are online or offline.
+
+### How Presence Works
+
+- When a user connects, the server notifies the Presence Server, which adds the user to its set of online users.
+- When a user disconnects, the Presence Server removes the user from the online set.
+- The server can query the Presence Server at any time to get a list of currently online users.
+
+### Presence Broadcast
+
+- Whenever a user comes online or goes offline, the server broadcasts a presence update to all connected clients.
+- Clients display these updates in real time, so users always know who is available.

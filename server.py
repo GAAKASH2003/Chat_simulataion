@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import json
 from presenceServer import PresenceServer
+from group import Group
 # from user import User
 
 class User:
@@ -33,6 +34,14 @@ class ChatServer:
         await self.broadcast_presence(username, "online")   
         return user
     
+    def create_group(self,group_name,members):
+        if group_name in self.groups:
+            print(f"[Server] Group {group_name} already exists.")
+            return False
+        self.groups[group_name] = Group(group_name, members)
+        print(f"[Server] Group {group_name} is created")
+        return True
+    
     async def route_message(self,packet,sender):
          recipient=packet["recipient"]
          if recipient in self.users:
@@ -46,6 +55,26 @@ class ChatServer:
                 "message": f"User {recipient} is offline or not found."
             })
     
+    async def route_group_message(self,packet,sender):
+           group_name = packet["group"]
+           if group_name not in self.groups:
+                 await sender.send_message({
+                     "type" :"error",
+                     "message": "this group doesn't exist"
+                 })
+                 return    
+           group=self.groups[group_name]
+           if not group.is_member(sender.name):
+              await sender.send_message({
+                "type": "error",
+                "message": f"You are not a member of group '{group_name}'"
+              })
+              return
+           for user in group.get_members():
+                if user!=sender.name and user in self.users:
+                    print(f"[Server] Sending message to {sender.name} in {group_name}")
+                    await self.users[user].send_message(packet) 
+                            
     async def handle_client(self,websocket):
          user=await self.register(websocket)    
          print(f"[Server] User {user.name} connected.")     
@@ -56,6 +85,10 @@ class ChatServer:
                  packet["sender"]=user.name
                  if packet["type"] == "message":
                      await self.route_message(packet, sender=user)
+                 elif packet["type"] == "group_message":
+                     await self.route_group_message(packet,sender=user) 
+                 elif packet["type"] == "create_group":
+                      self.create_group(packet['group'],packet['members'])      
                  elif packet["type"] == "ack":
                      print(f"[Server] Acknowledgment from {user.name}: {packet['recipient']}")
                      if packet["recipient"] in self.users:

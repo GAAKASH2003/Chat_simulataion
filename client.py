@@ -26,19 +26,54 @@ class Client:
     async def send_loop(self):
         loop = asyncio.get_event_loop()
         while True:
-            recipient = await loop.run_in_executor(None, input, "Send to: ")
-            if recipient == "/online":
-              await self.websocket.send(json.dumps({
+            command = await loop.run_in_executor(None, input, "Send to user or type '/group ")
+            if command == "/group":
+                group = await loop.run_in_executor(None, input,"Group name: ")
+                content = await loop.run_in_executor(None, input,"Message: ")
+                packet = {
+                    "type": "group_message",
+                    "group": group,
+                    "content": content
+                }
+                await self.websocket.send(json.dumps(packet))
+            
+            elif command == "/create":
+                group =await loop.run_in_executor(None, input,"New group name: ")
+                members = await loop.run_in_executor(None, input,"Enter members (comma separated): ")
+                members=members.split(",")
+                members = [m.strip() for m in members]
+                packet = {
+                    "type": "create_group",
+                    "group": group,
+                    "members": members
+                }
+                await self.websocket.send(json.dumps(packet))
+            elif command=="/online":
+                await self.websocket.send(json.dumps({
                 "type": "who_is_online"
                 }))
-              continue
-            content = await loop.run_in_executor(None, input, "Message: ")
-            packet = {
-                "type": "message",
-                "recipient": recipient,
-                "content": content
-            }
-            await self.websocket.send(json.dumps(packet))   
+                continue
+            else:
+                recipient = command
+                content = await loop.run_in_executor(None, input, "Message: ")
+                packet = {
+                    "type": "message",
+                    "recipient": recipient,
+                    "content": content
+                }
+                await self.websocket.send(json.dumps(packet))
+            
+            # if recipient == "/online":
+            #   await self.websocket.send(json.dumps({
+            #     "type": "who_is_online"
+            #     }))
+            #   continue
+            # packet = {
+            #     "type": "message",
+            #     "recipient": recipient,
+            #     "content": content
+            # }
+            # await self.websocket.send(json.dumps(packet))   
         
     async def receive_loop(self):
         try:
@@ -61,7 +96,10 @@ class Client:
                 elif data["type"] == "error":
                     print(f"[ERROR] {data['message']}")
                 elif data["type"] == "presence":
-                    print(f"[Presence] {data['username']} is now {data['status']}")    
+                    print(f"[Presence] {data['username']} is now {data['status']}")
+                elif data["type"] == "group_message":
+                    print(f"\n[Group:{data['group']}] {data['sender']}: {data['content']}")  
+                          
         except websockets.exceptions.ConnectionClosed as e:
             print(f"[Client] Connection closed: {e}")
 

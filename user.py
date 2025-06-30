@@ -8,5 +8,5 @@ class User:
     async def send_message(self, message):
         print(f"[Server] Sending: {message}")
         await self.websocket.send(json.dumps(message))
-
+    
     

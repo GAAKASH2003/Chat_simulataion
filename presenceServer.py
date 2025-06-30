@@ -1,7 +1,7 @@
 class PresenceServer:
     def __init__(self):
         self.online_users=set()
-    
+        
     def user_connected(self,username):
         self.online_users.add(username)
         print(f"[Server] User {username} connected. Online users: {self.online_users}")
